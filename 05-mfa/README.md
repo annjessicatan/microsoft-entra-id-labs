@@ -1,13 +1,13 @@
-# 🚦 Lab 6: Conditional Access: Configuration, Testing & Troubleshooting
+# 🛡️ Lab 5: Multifactor Authentication (MFA)
 
-[⬅ Previous: Lab 5 – MFA](../05-mfa/README.md) &nbsp;|&nbsp; [Main README](../README.md)
+[⬅ Previous: Lab 4 – SSPR](../04-sspr/README.md) &nbsp;|&nbsp; [Main README](../README.md) &nbsp;|&nbsp; [Next: Lab 6 – Conditional Access ➡](../06-conditional-access/README.md)
 
-![Microsoft Entra ID](https://img.shields.io/badge/Microsoft-Entra%20ID%20P2-0078D4?logo=microsoft&logoColor=white)
-![Policy](https://img.shields.io/badge/Policy-Conditional%20Access-purple)
-![Mode](https://img.shields.io/badge/Mode-Report--only-yellow)
+![Microsoft Entra ID](https://img.shields.io/badge/Microsoft-Entra%20ID-0078D4?logo=microsoft&logoColor=white)
+![Security](https://img.shields.io/badge/Focus-Strong%20Authentication-red)
 ![Status](https://img.shields.io/badge/Status-Completed-success)
+![Tasks](https://img.shields.io/badge/Tasks-3%20of%203-brightgreen)
 
-> **Scenario:** Before rolling out any access policy at Contoso, an admin needs to know who it affects and what it will do. I built a Conditional Access policy, ran it in **Report-only mode** so no real users were disrupted, and used **sign-in logs** and the **What If tool** to verify its scope. Along the way I diagnosed licensing, resource, and logging issues, the kind of troubleshooting that comes up in real tenants.
+> **Scenario:** A stolen password alone shouldn't be enough to get into Contoso's systems. I enabled MFA for a user, reviewed the service settings that control how MFA behaves, and configured account lockout rules to stop attackers who try to wear users down with repeated approval prompts.
 
 ---
 
@@ -15,183 +15,106 @@
 
 | | |
 |---|---|
-| **Platform** | Microsoft Entra admin center (Entra ID P2 trial) |
-| **Policy** | `Office 365`: Require multifactor authentication |
-| **Mode** | Report-only |
-| **Target user** | Bhogeswar Kalita |
-| **Target resource** | Office 365 |
-| **Core skills** | Conditional Access design, Report-only evaluation, sign-in log analysis, What If simulation, troubleshooting |
+| **Platform** | Microsoft Entra admin center |
+| **Focus area** | Strong authentication and account protection |
+| **Tasks completed** | 3 |
+| **Core skills** | Per-user MFA, MFA service settings, Trusted IPs, MFA account lockout |
 
 ### 🏆 Outcomes
 
-- ✅ Created a Conditional Access policy **scoped to one user and one resource**, requiring MFA
-- ✅ Deployed it in **Report-only mode** to evaluate impact without enforcing it
-- ✅ **Verified the policy using real sign-in logs**: `Report-only: Success` on two Outlook sign-ins
-- ✅ Ran **three What If simulations** to confirm which users and services the policy matches
-- ✅ Diagnosed **five real issues** (unavailable app, misleading "Not applied" status, mailbox licensing error, delayed logs, Security Defaults)
-
----
-
-## 🔀 Note: How This Lab Differs from the Original Exercise
-
-The original Microsoft exercise had me create a policy that **blocks a user from Microsoft Sway** and test it with What If. **Sway did not appear in the available resources in my tenant**, so I couldn't follow that exercise exactly.
-
-Instead of stopping, I adapted the lab to practice the same core concepts:
-
-| | Original exercise | What I did |
-|---|---|---|
-| **Target resource** | Microsoft Sway | Office 365 |
-| **Grant control** | Block access | Require multifactor authentication |
-| **Policy state** | On | Report-only |
-| **Validation** | What If tool | Real sign-in logs **and** What If tool |
-
-The concepts practiced are the same: user assignment, resource targeting, grant controls, and testing with What If. I also added log-based validation that the original exercise doesn't include.
+- ✅ Enabled **per-user MFA** for a user and confirmed the status change
+- ✅ Reviewed the MFA **service settings**: app passwords, Trusted IPs, verification options, and remembered devices
+- ✅ Configured **MFA account lockout**: 3 denials trigger a lockout, with a 180-minute counter reset and a 15-minute automatic unblock
+- ✅ Reviewed related protections: **fraud alert**, **block/unblock users**, and **notifications**
 
 ---
 
 ## 🗺️ Lab Workflow
 
 ```
-Assign license ──► Create policy ──► Report-only ──► Sign-in logs ──► What If ──► Troubleshoot
-                  (user + resource    (safe test)     (verify real     (simulate    (5 issues
-                   + MFA)                              evaluations)     scenarios)   resolved)
+Enable per-user MFA ──► Review service settings ──► Configure account lockout
+       Task 1                  Task 2                       Task 3
 ```
 
 ---
 
 ## 🧭 Walkthrough
 
-### Part 1: Prepare the License
+### Task 1: Enable Per-User MFA
 
-Conditional Access requires Microsoft Entra ID P1 or P2 licensing for the users it covers. An active subscription isn't enough on its own: the license must be **assigned to the user**.
+**Goal:** Require an additional verification step for a specific user.
 
-1. In the Microsoft 365 admin center, went to **Users → Active users → Bhogeswar Kalita → Licenses and apps**.
-2. Found Microsoft Entra ID P2 available from the active trial but not assigned to the test user.
-3. Assigned **Microsoft Entra ID P2** to the user.
+1. Signed in to the [Microsoft Entra admin center](https://entra.microsoft.com).
+2. Went to **Identity → Users → All users → Per-user MFA**.
+3. Selected **Bhogeswar Kalita** and chose **Enable MFA**.
+4. Read the information box. It includes a link that can be sent to the user so they can complete MFA setup.
+5. Selected **Enable** and confirmed the user's MFA status updated (shown as **Enforced** in my lab).
 
-![License assignment](screenshots/01-user-license-p2.png)
-*Assigning Microsoft Entra ID P2 to the test user*
+![Per-user MFA menu](screenshots/01-per-user-mfa-menu.png)
+*Users → All users → Per-user MFA*
+
+![Enable MFA](screenshots/02-select-user-enable-mfa.png)
+*Selecting the user and choosing Enable MFA*
+
+![Enable MFA pop-up](screenshots/03-enable-mfa-popup.png)
+*Information box with the MFA setup link for the user*
+
+![MFA status](screenshots/04-mfa-status-enforced.png)
+*User's MFA status after enabling*
 
 ---
 
-### Part 2: Create the Conditional Access Policy
+### Task 2: Review MFA Service Settings
 
-1. Went to **Protection → Conditional Access → Policies → New policy**.
-2. Named the policy `Office 365`.
+**Goal:** Understand the tenant-wide options that shape how MFA behaves.
 
-![Conditional Access overview](screenshots/02-ca-overview.png)
-*Conditional Access overview page*
+1. From **Per-user MFA**, opened **Service settings**.
+2. Reviewed each section (no changes were saved):
 
-| Section | Configuration |
+| Setting | What it's for |
 |---|---|
-| **Users** | Include → Select users and groups → Bhogeswar Kalita |
-| **Target resources** | Include → Select resources → Office 365 |
-| **Grant** | Grant access → **Require multifactor authentication** → Require one of the selected controls |
-| **Conditions** | Left unconfigured (user risk, sign-in risk, device platforms, locations, client apps, device filters) |
-| **Enable policy** | **Report-only** |
+| **App passwords** | Lets users keep using legacy apps that don't support MFA |
+| **Trusted IPs** | Lets users from known, safe IP ranges (such as the office network) skip MFA prompts |
+| **Verification options** | Controls which methods users can use as their second factor |
+| **Remember MFA on trusted device** | Lets users on trusted devices skip MFA for a set number of days |
 
-![User assignment](screenshots/03-policy-users.png)
-*Policy scoped to the test user only*
+![Service settings page](screenshots/05-service-settings-page.png)
+*Per-user MFA → Service settings*
 
-![Target resource](screenshots/04-target-resources-office365.png)
-*Office 365 selected as the target resource*
+![Trusted IPs and verification options](screenshots/06-trusted-ips-verification-options.png)
+*Reviewing Trusted IPs, verification options, and remembered devices*
 
-![Grant control](screenshots/05-grant-require-mfa.png)
-*Grant control: Require multifactor authentication*
-
-![Report-only](screenshots/06-report-only-state.png)
-*Policy state set to Report-only*
-
-![Policy created](screenshots/07-policy-created.png)
-*Policy visible on the Conditional Access policies list*
-
-> 💡 **Why Report-only?** It records what the policy *would* have done to each sign-in without enforcing it. This is the safe way to test a policy before turning it on, since a misconfigured policy could lock out real users.
+> ⚠️ **Security note:** App passwords and Trusted IPs both reduce MFA coverage. Use them sparingly, and keep trusted ranges as narrow as possible.
 
 ---
 
-### Part 3: Test and Troubleshoot
+### Task 3: Configure MFA Account Lockout
 
-I tried to confirm the policy was being evaluated during real sign-ins, and ran into several issues. Each one taught me something about how Conditional Access works in practice.
+**Goal:** Block accounts that receive repeated denied MFA prompts, a sign that someone else may be trying to sign in.
 
-| # | Issue | Investigation | Resolution | Lesson |
-|---|---|---|---|---|
-| 1 | **Sway wasn't available** as a target resource | Searched resources and found Office 365, Teams Connector, and SharePoint Connector | Used Office 365 as the target | Available resources differ by tenant |
-| 2 | Sign-ins showed **"Not applied"** for Conditional Access | Checked sign-ins across several apps (Azure Portal, OfficeHome, Power Pages, Outlook) and found a separate **Report-only** section in the sign-in details | Read the Report-only results for the custom policy and found **Report-only: Success** | "Not applied" describes *enforced* policies. Report-only results appear separately. |
-| 3 | **Outlook on the web returned an HTTP 500** error (`OwaUserHasNoMailboxAndNoLicenseAssignedException`) | Checked the user's licenses: no Exchange Online license assigned | Recognized the error was a mailbox licensing issue, not a policy problem | Authentication and mailbox availability are separate. The sign-in still succeeded. |
-| 4 | **New sign-ins weren't showing** in the logs | Refreshed, widened the time filter to 24 hours, rechecked the user filter, and reviewed interactive sign-ins | Located the newer Outlook sign-in event | Logs are delayed. Check time range and filters before assuming a test failed. |
-| 5 | **Security Defaults** was enabled | Reviewed it under Identity → Overview → Properties → Manage security defaults | Left it enabled and kept my policy in Report-only | Security Defaults and custom Conditional Access are separate, and disabling the baseline needs a replacement plan |
+1. Went to **Protection → Show more → Multifactor authentication → Account lockout**.
+2. Configured the following values:
 
-![Sway not found](screenshots/08-sway-not-found.png)
-*Searching for Sway returned no results in my tenant*
+| Setting | Value | Meaning |
+|---|---|---|
+| **Number of MFA denials to trigger account lockout** | `3` | Three denied prompts lock the account |
+| **Minutes until account lockout counter is reset** | `180` | The denial count resets after 3 hours |
+| **Minutes until account is automatically unblocked** | `15` | The account unlocks itself after 15 minutes |
 
-![Not applied](screenshots/09-signin-not-applied.png)
-*Sign-in details showing Conditional Access as "Not applied"*
+3. Selected **Save**.
+4. Reviewed other MFA options: **Fraud alert**, **Block/unblock users**, and **Notifications**.
 
-![Report-only success](screenshots/10-signin-report-only-success.png)
-*The Report-only tab showing the custom policy evaluated: Success*
+![MFA menu](screenshots/07-mfa-menu.png)
+*Protection → Multifactor authentication*
 
-![Outlook error](screenshots/11-outlook-500-error.png)
-*Outlook HTTP 500 caused by a missing Exchange Online license*
+![Account lockout values](screenshots/08-account-lockout-values.png)
+*Lockout configured: 3 denials, 180-minute reset, 15-minute unblock*
 
-![Security Defaults](screenshots/12-security-defaults.png)
-*Security Defaults enabled in the tenant*
+![Lockout saved](screenshots/09-lockout-saved.png)
+*Settings saved*
 
----
-
-### Part 4: Verify with Sign-in Logs
-
-I found two Outlook sign-in events for the test user on **November 1, 2026**, at 07:42:38 UTC and 07:58:12 UTC. Both showed the same results:
-
-| Field | Result |
-|---|---|
-| User | Bhogeswar Kalita |
-| Application | One Outlook Web |
-| Resource | Office 365 Exchange Online |
-| Sign-in status | Success |
-| Conditional Access (enforced) | Not applied |
-| Custom policy | Office 365 |
-| Grant control | MFA |
-| **Report-only result** | **Success** |
-
-![Sign-in event 1](screenshots/13-signin-event-1.png)
-*Sign-in event at 07:42:38 UTC*
-
-![Sign-in event 2](screenshots/14-signin-event-2.png)
-*Sign-in event at 07:58:12 UTC*
-
-**What this proves:**
-1. The policy was **evaluated** during a real sign-in.
-2. The test user matched the **user assignment**.
-3. Exchange Online matched the **resource assignment**.
-4. The MFA requirement was satisfied (an earlier sign-in had already provided an MFA claim in the token).
-
-> ⚠️ **Important distinction:** `Report-only: Success` does **not** mean an MFA challenge was enforced. It means the sign-in met the policy's requirements during evaluation.
-
----
-
-### Part 5: What If Simulations
-
-The **What If** tool shows which policies would apply to a set of sign-in conditions, without performing a real sign-in.
-
-| # | User | Cloud app | Result |
-|---|---|---|---|
-| 1 | Bhogeswar Kalita | Office 365 Exchange Online | ✅ `Office 365` policy matched (MFA, Report-only, Has Filter: No) |
-| 2 | Bhogeswar Kalita | Office 365 SharePoint Online | ✅ `Office 365` policy matched (MFA, Report-only, Has Filter: No) |
-| 3 | A different user | Office 365 | ❌ **No policies found** |
-
-![What If: Exchange](screenshots/15-whatif-exchange.png)
-*Simulation 1: policy matches the test user on Exchange Online*
-
-![What If: SharePoint](screenshots/16-whatif-sharepoint.png)
-*Simulation 2: the same policy also matches SharePoint Online*
-
-![What If: different user](screenshots/17-whatif-different-user.png)
-*Simulation 3: no policies found for a user outside the policy's scope*
-
-**Interpretation:**
-- Simulation 2 showed that targeting **Office 365** covers multiple services, not just Exchange Online.
-- Simulation 3 showed that **user assignments** control which identities a policy affects.
-- `Has Filter?: No` was expected, since no device filter was configured.
+![Other MFA options](screenshots/10-other-mfa-options.png)
+*Reviewing fraud alert, block/unblock users, and notifications*
 
 ---
 
@@ -199,57 +122,41 @@ The **What If** tool shows which policies would apply to a set of sign-in condit
 
 | Concept | Why it matters |
 |---|---|
-| **Conditional Access** | If-then rules evaluated at sign-in: if the assignments and conditions match, apply the access controls |
-| **Assignments** | Define *who* (users/groups) and *what* (apps/resources) a policy covers |
-| **Grant controls** | The outcome: block access, or allow it with requirements such as MFA |
-| **Report-only mode** | Evaluates and logs a policy's impact without enforcing it |
-| **Sign-in logs** | The record of real authentication events and which policies were evaluated |
-| **What If tool** | Simulates a policy match for a chosen user, app, and conditions |
-| **Security Defaults** | Baseline protection that is separate from custom Conditional Access policies |
-| **Licensing** | Entra ID P1 or P2 must be assigned to users covered by Conditional Access |
+| **MFA** | Requires more than a password, such as an app prompt or phone code, so a stolen password alone isn't enough |
+| **Per-user MFA** | Enables MFA one account at a time. It's simple but doesn't scale. |
+| **Trusted IPs** | Convenient for known networks, but each exception is a gap an attacker could use |
+| **App passwords** | A workaround for legacy apps that carries more risk |
+| **MFA account lockout** | Limits repeated denied prompts, helping defend against "MFA fatigue" attacks |
+| **Fraud alert** | Lets users report an unexpected MFA prompt so the account can be blocked |
+
+> 💡 **Per-user MFA vs. Conditional Access:** Per-user MFA is the older approach. For larger environments, Microsoft recommends enforcing MFA through Conditional Access policies, which are more flexible and based on context. That's what [Lab 6](../06-conditional-access/README.md) covers.
 
 ---
 
 ## 🛡️ Security Practices Applied
 
-- **Test before enforcing:** Report-only mode let me observe the policy's effect without affecting access.
-- **Narrow scope:** The policy was limited to one test user rather than the whole tenant.
-- **Don't weaken the baseline:** Security Defaults stayed enabled during testing.
-- **Verify with evidence:** I confirmed behavior through real sign-in logs instead of assuming the policy worked.
-- **Simulate edge cases:** What If testing covered a matching service, a second service, and a user outside the policy's scope.
+- **Defense in depth:** MFA adds a second barrier even if a password is compromised.
+- **Attack-aware configuration:** Lockout thresholds target MFA fatigue, where attackers spam prompts hoping the user approves one.
+- **Minimizing exceptions:** Service settings that bypass MFA (Trusted IPs, app passwords, remembered devices) were reviewed rather than loosened.
+- **Reviewing before changing:** Settings in Task 2 were inspected without saving changes.
 
 ---
 
 ## 💡 Key Takeaways
 
-1. **Authentication doesn't guarantee application access.** A user can sign in successfully and still be unable to open a mailbox without the right license.
-2. **Read Report-only results separately.** The overall status can say "Not applied" while the Report-only result says "Success."
-3. **Licensing matters.** Entra ID P1 or P2 must be assigned to users covered by Conditional Access.
-4. **Logs aren't instant.** Check time ranges and filters before concluding a test failed.
-5. **Resource scope can be broader than expected.** Targeting Office 365 matched both Exchange Online and SharePoint Online.
-6. **Plan before replacing Security Defaults.** Equivalent protections and emergency access accounts should be in place first.
-7. **Adapting is part of the job.** When the exercise's target app wasn't available, I kept the lab's learning goals and documented what I changed.
-
----
-
-## 🚀 Possible Next Steps
-
-- Rebuild the original **block-access** policy using an app available in the tenant, initially in Report-only mode
-- Add **exclusions**, including an admin or emergency access account, to avoid accidental lockout
-- Explore **location-based** and **device-based** conditions
-- Explore **sign-in risk** and **user risk** policies (requires appropriate licensing)
-- Compare Report-only results with an enforced policy in a properly licensed test environment
+- MFA is one of the most effective single controls against account compromise, but its exceptions (Trusted IPs, app passwords, remembered devices) need careful management.
+- A lockout policy that is too strict can lock out real users, while one that is too loose lets attackers keep trying. The values need to balance both.
+- Per-user MFA is useful for understanding the basics, but policy-based enforcement scales better.
+- Fraud alerts and notifications give users a way to help detect attacks.
 
 ---
 
 ## 🔗 References
 
-- [Conditional Access overview](https://learn.microsoft.com/entra/identity/conditional-access/overview)
-- [Conditional Access Report-only mode](https://learn.microsoft.com/entra/identity/conditional-access/concept-conditional-access-report-only)
-- [What If tool](https://learn.microsoft.com/entra/identity/conditional-access/what-if-tool)
-- [Security defaults](https://learn.microsoft.com/entra/fundamentals/security-defaults)
-- [Sign-in logs](https://learn.microsoft.com/entra/identity/monitoring-health/concept-sign-ins)
+- [How Microsoft Entra Multifactor Authentication works](https://learn.microsoft.com/entra/identity/authentication/concept-mfa-howitworks)
+- [Enable per-user MFA](https://learn.microsoft.com/entra/identity/authentication/howto-mfa-userstates)
+- [Configure MFA settings](https://learn.microsoft.com/entra/identity/authentication/howto-mfa-mfasettings)
 
 ---
 
-<sub>Completed in a Microsoft Entra ID P2 trial tenant. Tenant names and identifiers are redacted from all screenshots.</sub>
+<sub>Completed in a Microsoft training lab environment. Tenant names and identifiers are redacted from all screenshots.</sub>
