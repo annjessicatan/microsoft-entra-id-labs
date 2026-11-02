@@ -128,9 +128,9 @@ These labs build foundational knowledge relevant to:
 **[Your Name]**
 Aspiring IAM / Cloud Security professional building hands-on experience in Microsoft identity and security.
 
-- 💼 LinkedIn: [your-linkedin-url](https://linkedin.com/in/your-profile)
-- 📧 Email: your.email@example.com
-- 🌐 Portfolio: [your-site.com](https://your-site.com)
+- 💼 LinkedIn: [annjessicatan](https://linkedin.com/in/annjessicatan)
+- 📧 Email: ajessicavtan@gmail.com
+- 🌐 Portfolio: [https://annjessicatan.github.io/](https://annjessicatan.github.io/)
 
 ---
 
